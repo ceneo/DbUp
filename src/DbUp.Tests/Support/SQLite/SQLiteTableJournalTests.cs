@@ -41,21 +41,24 @@ namespace DbUp.Tests.Support.SQLite
             var dbConnection = Substitute.For<IDbConnection>();
             var connectionManager = new TestConnectionManager(dbConnection, true);
             var command = Substitute.For<IDbCommand>();
+            var hasher = Substitute.For<IHasher>();
             var param1 = Substitute.For<IDbDataParameter>();
             var param2 = Substitute.For<IDbDataParameter>();
+            var param3 = Substitute.For<IDbDataParameter>();
             dbConnection.CreateCommand().Returns(command);
-            command.CreateParameter().Returns(param1, param2);
+            command.CreateParameter().Returns(param1, param2, param3);
             command.ExecuteScalar().Returns(x => { throw new SQLiteException("table not found"); });
             var consoleUpgradeLog = new ConsoleUpgradeLog();
             var journal = new SQLiteTableJournal(() => connectionManager, () => consoleUpgradeLog, "SchemaVersions");
 
             // When
-            journal.StoreExecutedScript(new SqlScript("test", "select 1"));
+            journal.StoreExecutedScript(new SqlScript("test", "select 1", hasher));
 
             // Expect
-            command.Received(2).CreateParameter();
+            command.Received(3).CreateParameter();
             Assert.AreEqual("scriptName", param1.ParameterName);
             Assert.AreEqual("applied", param2.ParameterName);
+            Assert.AreEqual("scriptHash", param3.ParameterName);
             command.Received().ExecuteNonQuery();
         }
     }

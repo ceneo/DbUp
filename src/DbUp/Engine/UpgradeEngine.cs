@@ -104,10 +104,10 @@ namespace DbUp.Engine
             var allScripts = configuration.ScriptProviders.SelectMany(scriptProvider => scriptProvider.GetScripts(configuration.ConnectionManager));
             var executedScripts = configuration.Journal.GetExecutedScripts();
 
-            return allScripts.Where(s => !executedScripts.Any(y => y == s.Name)).ToList();
+            return allScripts.Where(s => !executedScripts.Any(y => s.MatchTo(y))).ToList();
         }
 
-        public List<string> GetExecutedScripts()
+        public List<ExecutedSqlScript> GetExecutedScripts()
         {
             using (configuration.ConnectionManager.OperationStarting(configuration.Log, new List<SqlScript>()))
             {

@@ -54,17 +54,17 @@ namespace DbUp.Support.MySql
                         PRIMARY KEY (`schemaversionid`));", tableName);
         }
 
-        public string[] GetExecutedScripts()
+        public ExecutedSqlScript[] GetExecutedScripts()
         {
             log().WriteInformation("Fetching list of already executed scripts.");
             var exists = DoesTableExist();
             if (!exists)
             {
                 log().WriteInformation(string.Format("The {0} table could not be found. The database is assumed to be at version 0.", schemaTableName));
-                return new string[0];
+                return new ExecutedSqlScript[0];
             }
 
-            var scripts = new List<string>();
+            var scripts = new List<ExecutedSqlScript>();
             connectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
             {
                 using (var command = dbCommandFactory())
@@ -75,7 +75,7 @@ namespace DbUp.Support.MySql
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
-                            scripts.Add((string)reader[0]);
+                            scripts.Add(new ExecutedSqlScript((string)reader[0],null));
                     }
                 }
             });

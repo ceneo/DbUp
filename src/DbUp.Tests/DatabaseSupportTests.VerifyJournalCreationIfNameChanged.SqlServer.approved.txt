@@ -8,6 +8,7 @@ Dispose command
 Execute non query command: create table [test].[TestSchemaVersions] (
 	[Id] int identity(1,1) not null constraint [PK_TestSchemaVersions_Id] primary key,
 	[ScriptName] nvarchar(255) not null,
+    [ScriptHash] nvarchar(100) null,
 	[Applied] datetime not null
 )
 Dispose command
@@ -15,6 +16,8 @@ Create parameter
 Add parameter to command: scriptName=Script0001.sql
 Create parameter
 Add parameter to command: applied=<date>
-Execute non query command: insert into [test].[TestSchemaVersions] (ScriptName, Applied) values (@scriptName, @applied)
+Create parameter
+Add parameter to command: scriptHash=MD5alg_T2zV2ZLoyOtESNkHlDMX8g==
+Execute non query command: insert into [test].[TestSchemaVersions] (ScriptName, Applied, ScriptHash) values (@scriptName, @applied, @scriptHash)
 Dispose command
 Dispose connection

@@ -59,6 +59,9 @@
     <Compile Include="Builder\StandardExtensions.cs" />
     <Compile Include="Builder\UpgradeConfiguration.cs" />
     <Compile Include="Builder\UpgradeEngineBuilder.cs" />
+    <Compile Include="Engine\ExecutedSqlScript.cs" />
+    <Compile Include="Engine\Hashers\Md5WithMarkHasher.cs" />
+    <Compile Include="Engine\IHasher.cs" />
     <Compile Include="Engine\Preprocessors\VariableSubstitutionSqlParser.cs" />
     <Compile Include="EnsureDatabase.cs" />
     <Compile Include="DeployChanges.cs" />

@@ -16,7 +16,7 @@ namespace DbUp.Tests.Helpers
             object obj = null;
             var result = obj.Get<string>();
 
-            Assert.AreEqual(null, obj);
+            Assert.AreEqual(null, result);
         }
 
         [Test]
@@ -25,7 +25,7 @@ namespace DbUp.Tests.Helpers
             object obj = "test_string";
             var result = obj.Get<string>();
 
-            Assert.AreEqual("test_string", obj);
+            Assert.AreEqual("test_string", result);
         }
     }
 }

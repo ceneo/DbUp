@@ -12,9 +12,9 @@ namespace DbUp.Helpers
         /// Returns an empty array of length 0
         /// </summary>
         /// <returns></returns>
-        public string[] GetExecutedScripts()
+        public ExecutedSqlScript[] GetExecutedScripts()
         {
-            return new string[0];
+            return new ExecutedSqlScript[0];
         }
 
         /// <summary>

@@ -15,6 +15,18 @@ namespace DbUp.Engine
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="contentProvider">The delegate which creates the content at execution time.</param>
+        /// <param name="hasher">The hasher implementations</param>
+        public LazySqlScript(string name, Func<string> contentProvider, IHasher hasher)
+            : base(name, null, hasher)
+        {
+            this.contentProvider = contentProvider;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LazySqlScript"/> class.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="contentProvider">The delegate which creates the content at execution time.</param>
         public LazySqlScript(string name, Func<string> contentProvider)
             : base(name, null)
         {
@@ -29,5 +41,15 @@ namespace DbUp.Engine
         {
             get { return content ?? (content = contentProvider()); }
         }
+
+        /// <summary>
+        /// Generate hash from current instance
+        /// </summary>
+        /// <returns></returns>
+        protected override string GenerateHash()
+        {
+            return GenerateHash(Name);
+        }
+        
     }
 }

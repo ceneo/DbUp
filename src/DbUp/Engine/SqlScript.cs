@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Text;
+using DbUp.Engine.Hashers;
 
 namespace DbUp.Engine
 {
@@ -9,20 +10,66 @@ namespace DbUp.Engine
     /// Represents a SQL Server script that comes from an embedded resource in an assembly. 
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{Name}")]
-    public class SqlScript
+    public class SqlScript 
     {
         private readonly string contents;
         private readonly string name;
+        private string hash;
+        private readonly IHasher hasher;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlScript"/> class.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="contents">The contents.</param>
-        public SqlScript(string name, string contents)
+        /// <param name="hasher">The hasher implementations</param>
+        public SqlScript(string name, string contents, IHasher hasher)
         {
             this.name = name;
             this.contents = contents;
+            this.hasher = hasher;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlScript"/> class.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="contents">The contents.</param>
+        public SqlScript(string name, string contents):this(name, contents, new Md5WithMarkHasher())
+        {}
+
+        /// <summary>
+        /// Gets the hash of the script.
+        /// </summary>
+        public string Hash
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(hash))
+                {
+                    hash = GenerateHash();
+                } 
+
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// Generate hash from current instance
+        /// </summary>
+        /// <returns></returns>
+        protected virtual string GenerateHash()
+        {
+            return GenerateHash(name + contents);
+        }
+
+        /// <summary>
+        /// Generates hash from provided input using hasher
+        /// </summary>
+        /// <returns></returns>
+        protected string GenerateHash(string input)
+        {
+            return hasher.GenerateHash(input);
         }
 
         /// <summary>
@@ -93,6 +140,25 @@ namespace DbUp.Engine
                 string c = resourceStreamReader.ReadToEnd();
                 return new SqlScript(scriptName, c);
             }
+        }
+
+        /// <summary>
+        /// Check if current sql script is the same as provided executed script
+        /// </summary>
+        /// <param name="executedSqlScript"></param>
+        /// <returns></returns>
+        public bool MatchTo(ExecutedSqlScript executedSqlScript)
+        {
+            if (Name != executedSqlScript.Name)
+                return false;
+
+            if (string.IsNullOrEmpty(executedSqlScript.Hash))
+                return true;
+
+            if(!hasher.Verify(executedSqlScript.Hash))
+                throw new NotSupportedException("Wrong hasher implementation. You should use the same hasher to avoid executing scripts again.");
+
+            return executedSqlScript.Hash == Hash;
         }
     }
 }

@@ -9,7 +9,7 @@
         /// Recalls the version number of the database.
         /// </summary>
         /// <returns></returns>
-        string[] GetExecutedScripts();
+        ExecutedSqlScript[] GetExecutedScripts();
 
         /// <summary>
         /// Records an upgrade script for a database.

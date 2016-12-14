@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using DbUp.Engine;
 using DbUp.Engine.Output;
 using DbUp.Engine.Transactions;
+using DbUp.Helpers;
 
 namespace DbUp.Support.SqlServer
 {
@@ -44,17 +45,19 @@ namespace DbUp.Support.SqlServer
         /// Recalls the version number of the database.
         /// </summary>
         /// <returns>All executed scripts.</returns>
-        public string[] GetExecutedScripts()
+        public ExecutedSqlScript[] GetExecutedScripts()
         {
             log().WriteInformation("Fetching list of already executed scripts.");
             var exists = DoesTableExist();
             if (!exists)
             {
                 log().WriteInformation(string.Format("The {0} table could not be found. The database is assumed to be at version 0.", CreateTableName(schema, table)));
-                return new string[0];
+                return new ExecutedSqlScript[0];
             }
 
-            var scripts = new List<string>();
+            AddScriptHashColumnIfNotExists();
+
+            var scripts = new List<ExecutedSqlScript>();
             connectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
             {
                 using (var command = dbCommandFactory())
@@ -65,7 +68,7 @@ namespace DbUp.Support.SqlServer
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
-                            scripts.Add((string)reader[0]);
+                            scripts.Add(new ExecutedSqlScript(reader[0].Get<string>(), reader[1].Get<string>()));
                     }
                 }
             });
@@ -73,12 +76,91 @@ namespace DbUp.Support.SqlServer
             return scripts.ToArray();
         }
 
+        private void AddScriptHashColumnIfNotExists()
+        {
+            string columnName = "ScriptHash";
+            int columnSize = 100;
+
+            var scriptHashColumnExists = DoesColumnExists(columnName);
+            if (!scriptHashColumnExists)
+            {
+
+
+                connectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
+                {
+                    using (var command = dbCommandFactory())
+                    {
+                        AddTextColumnCommand(command, schema, table, columnName, columnSize);
+                    }
+                });
+            }
+
+        }
+        
+        /// <summary>
+        /// Altering table to add new column with specified name and type
+        /// </summary>
+        /// <param name="command">The <c>IDbCommand</c> to be used for the query</param>
+        /// <param name="schemaName">The schema for the table</param>
+        /// <param name="tableName">The name of the table</param>
+        /// <param name="columnName">The column name to add</param>
+        /// <param name="size">The size of text field</param>
+        protected virtual void AddTextColumnCommand(IDbCommand command, string schemaName, string tableName, string columnName, int size)
+        {
+            command.CommandText = GetAddTextColumnSql(schema, table, columnName, size);
+            command.CommandType = CommandType.Text;
+            command.ExecuteNonQuery();
+        }
+
+        private string GetAddTextColumnSql(string schemaName, string tableName, string columnName, int size)
+        {
+            return string.Format("ALTER TABLE {0} ADD {1} nvarchar({2}) NULL", CreateTableName(schemaName, tableName), columnName, size.ToString());
+        }
+
+        private bool DoesColumnExists(string columnName)
+        {
+            return connectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
+            {
+                try
+                {
+                    using (var command = dbCommandFactory())
+                    {
+                        return VerifyColumnExistsCommand(command, table, schema,columnName);
+                    }
+                }
+                catch (SqlException ex)
+                {
+                    return false;
+                }
+                catch (DbException ex)
+                {
+                    return false;
+                }
+            });
+        }
+
+        /// <summary>Verify, using database-specific queries, if the column scripthash exists in the database.</summary>
+        /// <param name="command">The <c>IDbCommand</c> to be used for the query</param>
+        /// <param name="tableName">The name of the table</param>
+        /// <param name="schemaName">The schema for the table</param>
+        /// <param name="columnName">The column to check if exists</param>
+        /// <returns>True if table exists, false otherwise</returns>
+        protected virtual bool VerifyColumnExistsCommand(IDbCommand command, string tableName, string schemaName, string columnName)
+        {
+            command.CommandText = string.IsNullOrEmpty(schema)
+                            ? string.Format("select 1 from Information_SCHEMA.columns where TABLE_NAME = '{0}' and column_name='{1}'", tableName,columnName)
+                            : string.Format("select 1 from Information_SCHEMA.columns where TABLE_NAME = '{0}' and TABLE_SCHEMA = '{1}' and column_name='{2}'", tableName, schemaName,columnName);
+            command.CommandType = CommandType.Text;
+            var result = command.ExecuteScalar() as int?;
+            return result == 1;
+        }
+
         /// <summary>
         /// Create an SQL statement which will retrieve all executed scripts in order.
         /// </summary>
         protected virtual string GetExecutedScriptsSql(string schema, string table)
         {
-            return string.Format("select [ScriptName] from {0} order by [ScriptName]", CreateTableName(schema, table));
+            return string.Format("select [ScriptName], [ScriptHash] from {0} order by [ScriptName]", CreateTableName(schema, table));
         }
 
         /// <summary>
@@ -110,7 +192,7 @@ namespace DbUp.Support.SqlServer
             {
                 using (var command = dbCommandFactory())
                 {
-                    command.CommandText = string.Format("insert into {0} (ScriptName, Applied) values (@scriptName, @applied)", CreateTableName(schema, table));
+                    command.CommandText = string.Format("insert into {0} (ScriptName, Applied, ScriptHash) values (@scriptName, @applied, @scriptHash)", CreateTableName(schema, table));
 
                     var scriptNameParam = command.CreateParameter();
                     scriptNameParam.ParameterName = "scriptName";
@@ -121,6 +203,11 @@ namespace DbUp.Support.SqlServer
                     appliedParam.ParameterName = "applied";
                     appliedParam.Value = DateTime.Now;
                     command.Parameters.Add(appliedParam);
+
+                    var scriptHashParam = command.CreateParameter();
+                    scriptHashParam.ParameterName = "scriptHash";
+                    scriptHashParam.Value = script.Hash;
+                    command.Parameters.Add(scriptHashParam);
 
                     command.CommandType = CommandType.Text;
                     command.ExecuteNonQuery();
@@ -140,6 +227,7 @@ namespace DbUp.Support.SqlServer
             return string.Format(@"create table {0} (
 	[Id] int identity(1,1) not null constraint {1} primary key,
 	[ScriptName] nvarchar(255) not null,
+    [ScriptHash] nvarchar(100) null,
 	[Applied] datetime not null
 )", tableName, primaryKeyConstraintName);
         }

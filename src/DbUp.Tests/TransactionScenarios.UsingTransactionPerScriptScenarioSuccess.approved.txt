@@ -18,6 +18,7 @@ Begin transaction
 Execute non query command: create table [SchemaVersions] (
 	[Id] int identity(1,1) not null constraint [PK_SchemaVersions_Id] primary key,
 	[ScriptName] nvarchar(255) not null,
+    [ScriptHash] nvarchar(100) null,
 	[Applied] datetime not null
 )
 Dispose command
@@ -28,7 +29,9 @@ Create parameter
 Add parameter to command: scriptName=Script0001.sql
 Create parameter
 Add parameter to command: applied=<date>
-Execute non query command: insert into [SchemaVersions] (ScriptName, Applied) values (@scriptName, @applied)
+Create parameter
+Add parameter to command: scriptHash=MD5alg_THtNjh+lqwy6kZQz0nIiEQ==
+Execute non query command: insert into [SchemaVersions] (ScriptName, Applied, ScriptHash) values (@scriptName, @applied, @scriptHash)
 Dispose command
 Commit transaction
 Dispose transaction
@@ -46,6 +49,7 @@ Begin transaction
 Execute non query command: create table [SchemaVersions] (
 	[Id] int identity(1,1) not null constraint [PK_SchemaVersions_Id] primary key,
 	[ScriptName] nvarchar(255) not null,
+    [ScriptHash] nvarchar(100) null,
 	[Applied] datetime not null
 )
 Dispose command
@@ -56,7 +60,9 @@ Create parameter
 Add parameter to command: scriptName=Script0002.sql
 Create parameter
 Add parameter to command: applied=<date>
-Execute non query command: insert into [SchemaVersions] (ScriptName, Applied) values (@scriptName, @applied)
+Create parameter
+Add parameter to command: scriptHash=MD5alg_PuY6SZWLGPwQ34ViVKalQg==
+Execute non query command: insert into [SchemaVersions] (ScriptName, Applied, ScriptHash) values (@scriptName, @applied, @scriptHash)
 Dispose command
 Commit transaction
 Dispose transaction

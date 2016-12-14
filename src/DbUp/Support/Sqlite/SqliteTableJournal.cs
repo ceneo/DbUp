@@ -32,6 +32,7 @@ namespace DbUp.Support.SQLite
                             @"CREATE TABLE {0} (
 	SchemaVersionID INTEGER CONSTRAINT {1} PRIMARY KEY AUTOINCREMENT NOT NULL,
 	ScriptName TEXT NOT NULL,
+    ScriptHash TEXT NULL,
 	Applied DATETIME NOT NULL
 )", tableName, primaryKeyName);
         }
@@ -55,6 +56,44 @@ namespace DbUp.Support.SQLite
             command.CommandType = CommandType.Text;
             var result = (long)command.ExecuteScalar();
             return result == 1;
+        }
+
+        /// <summary>Verify, using database-specific queries, if the column scripthash exists in the database.</summary>
+        /// <param name="command">The <c>IDbCommand</c> to be used for the query</param>
+        /// <param name="tableName">The name of the table</param>
+        /// <param name="schemaName">The schema for the table</param>
+        /// <param name="columnName">The column to check if exists</param>
+        /// <returns>True if table exists, false otherwise</returns>
+        protected override bool VerifyColumnExistsCommand(IDbCommand command, string tableName, string schemaName, string columnName)
+        {
+            command.CommandText = string.Format("PRAGMA table_info('{0}')", tableName);
+            command.CommandType = CommandType.Text;
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if((string)reader["name"] == columnName)
+                        return true;;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Altering table to add new column with specified name and type
+        /// </summary>
+        /// <param name="command">The <c>IDbCommand</c> to be used for the query</param>
+        /// <param name="schemaName">The schema for the table</param>
+        /// <param name="tableName">The name of the table</param>
+        /// <param name="columnName">The column name to add</param>
+        /// <param name="size">The size of text field</param>
+        protected override void AddTextColumnCommand(IDbCommand command, string schemaName, string tableName, string columnName, int size)
+        {
+            command.CommandText = string.Format("ALTER TABLE {0} ADD COLUMN {1} TEXT", tableName, columnName);
+            command.CommandType = CommandType.Text;
+            command.ExecuteNonQuery();
         }
     }
 }

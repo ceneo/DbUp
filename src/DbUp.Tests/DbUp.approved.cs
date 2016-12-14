@@ -63,9 +63,20 @@ namespace DbUp.Engine
         public System.Collections.Generic.IEnumerable<DbUp.Engine.SqlScript> Scripts { get; }
         public bool Successful { get; }
     }
+    public class ExecutedSqlScript
+    {
+        public ExecutedSqlScript(string name, string hash) { }
+        public string Hash { get; }
+        public string Name { get; }
+    }
+    public interface IHasher
+    {
+        string GenerateHash(string input);
+        bool Verify(string hash);
+    }
     public interface IJournal
     {
-        string[] GetExecutedScripts();
+        DbUp.Engine.ExecutedSqlScript[] GetExecutedScripts();
         void StoreExecutedScript(DbUp.Engine.SqlScript script);
     }
     public interface IScript
@@ -89,30 +100,47 @@ namespace DbUp.Engine
     }
     public class LazySqlScript : DbUp.Engine.SqlScript
     {
+        public LazySqlScript(string name, System.Func<string> contentProvider, DbUp.Engine.IHasher hasher) { }
         public LazySqlScript(string name, System.Func<string> contentProvider) { }
         public override string Contents { get; }
+        protected override string GenerateHash() { }
     }
     [System.Diagnostics.DebuggerDisplayAttribute("{Name}")]
     public class SqlScript
     {
+        public SqlScript(string name, string contents, DbUp.Engine.IHasher hasher) { }
         public SqlScript(string name, string contents) { }
         public virtual string Contents { get; }
+        public string Hash { get; }
         public string Name { get; }
         public static DbUp.Engine.SqlScript FromFile(string path) { }
         public static DbUp.Engine.SqlScript FromFile(string path, System.Text.Encoding encoding) { }
         public static DbUp.Engine.SqlScript FromStream(string scriptName, System.IO.Stream stream) { }
         public static DbUp.Engine.SqlScript FromStream(string scriptName, System.IO.Stream stream, System.Text.Encoding encoding) { }
+        protected virtual string GenerateHash() { }
+        protected string GenerateHash(string input) { }
+        public bool MatchTo(DbUp.Engine.ExecutedSqlScript executedSqlScript) { }
     }
     public class UpgradeEngine
     {
         public UpgradeEngine(DbUp.Builder.UpgradeConfiguration configuration) { }
-        public System.Collections.Generic.List<string> GetExecutedScripts() { }
+        public System.Collections.Generic.List<DbUp.Engine.ExecutedSqlScript> GetExecutedScripts() { }
         public System.Collections.Generic.List<DbUp.Engine.SqlScript> GetScriptsToExecute() { }
         public bool IsUpgradeRequired() { }
         public DbUp.Engine.DatabaseUpgradeResult MarkAsExecuted() { }
         public DbUp.Engine.DatabaseUpgradeResult MarkAsExecuted(string latestScript) { }
         public DbUp.Engine.DatabaseUpgradeResult PerformUpgrade() { }
         public bool TryConnect(out string errorMessage) { }
+    }
+}
+namespace DbUp.Engine.Hashers
+{
+    
+    public class Md5WithMarkHasher : DbUp.Engine.IHasher
+    {
+        public Md5WithMarkHasher() { }
+        public string GenerateHash(string input) { }
+        public bool Verify(string hash) { }
     }
 }
 namespace DbUp.Engine.Output
@@ -236,10 +264,14 @@ namespace DbUp.Helpers
         public object ExecuteScalar(string query, params System.Func<, >[] parameters) { }
         public DbUp.Helpers.AdHocSqlRunner WithVariable(string variableName, string value) { }
     }
+    public class static DbExtensions
+    {
+        public static T Get<T>(this object source) { }
+    }
     public class NullJournal : DbUp.Engine.IJournal
     {
         public NullJournal() { }
-        public string[] GetExecutedScripts() { }
+        public DbUp.Engine.ExecutedSqlScript[] GetExecutedScripts() { }
         public void StoreExecutedScript(DbUp.Engine.SqlScript script) { }
     }
     public class TemporarySqlDatabase : System.IDisposable
@@ -301,7 +333,7 @@ namespace DbUp.Support.Firebird
     public sealed class FirebirdTableJournal : DbUp.Engine.IJournal
     {
         public FirebirdTableJournal(System.Func<DbUp.Engine.Transactions.IConnectionManager> connectionManager, System.Func<DbUp.Engine.Output.IUpgradeLog> logger, string tableName) { }
-        public string[] GetExecutedScripts() { }
+        public DbUp.Engine.ExecutedSqlScript[] GetExecutedScripts() { }
         public void StoreExecutedScript(DbUp.Engine.SqlScript script) { }
     }
 }
@@ -311,7 +343,7 @@ namespace DbUp.Support.MySql
     public sealed class MySqlITableJournal : DbUp.Engine.IJournal
     {
         public MySqlITableJournal(System.Func<DbUp.Engine.Transactions.IConnectionManager> connectionManager, System.Func<DbUp.Engine.Output.IUpgradeLog> logger, string schema, string table) { }
-        public string[] GetExecutedScripts() { }
+        public DbUp.Engine.ExecutedSqlScript[] GetExecutedScripts() { }
         public void StoreExecutedScript(DbUp.Engine.SqlScript script) { }
     }
 }
@@ -330,7 +362,7 @@ namespace DbUp.Support.Postgresql
     public sealed class PostgresqlTableJournal : DbUp.Engine.IJournal
     {
         public PostgresqlTableJournal(System.Func<DbUp.Engine.Transactions.IConnectionManager> connectionManager, System.Func<DbUp.Engine.Output.IUpgradeLog> logger, string schema, string table) { }
-        public string[] GetExecutedScripts() { }
+        public DbUp.Engine.ExecutedSqlScript[] GetExecutedScripts() { }
         public void StoreExecutedScript(DbUp.Engine.SqlScript script) { }
     }
 }
@@ -346,8 +378,10 @@ namespace DbUp.Support.SQLite
     public sealed class SQLiteTableJournal : DbUp.Support.SqlServer.SqlTableJournal
     {
         public SQLiteTableJournal(System.Func<DbUp.Engine.Transactions.IConnectionManager> connectionManager, System.Func<DbUp.Engine.Output.IUpgradeLog> logger, string table) { }
+        protected override void AddTextColumnCommand(System.Data.IDbCommand command, string schemaName, string tableName, string columnName, int size) { }
         protected override string CreatePrimaryKeyName(string table) { }
         protected override string CreateTableSql(string schema, string table) { }
+        protected override bool VerifyColumnExistsCommand(System.Data.IDbCommand command, string tableName, string schemaName, string columnName) { }
         protected override bool VerifyTableExistsCommand(System.Data.IDbCommand command, string tableName, string schemaName) { }
     }
 }
@@ -430,12 +464,14 @@ namespace DbUp.Support.SqlServer
     public class SqlTableJournal : DbUp.Engine.IJournal
     {
         public SqlTableJournal(System.Func<DbUp.Engine.Transactions.IConnectionManager> connectionManager, System.Func<DbUp.Engine.Output.IUpgradeLog> logger, string schema, string table) { }
+        protected virtual void AddTextColumnCommand(System.Data.IDbCommand command, string schemaName, string tableName, string columnName, int size) { }
         protected virtual string CreatePrimaryKeyName(string table) { }
         protected virtual string CreateTableName(string schema, string table) { }
         protected virtual string CreateTableSql(string schema, string table) { }
-        public string[] GetExecutedScripts() { }
+        public DbUp.Engine.ExecutedSqlScript[] GetExecutedScripts() { }
         protected virtual string GetExecutedScriptsSql(string schema, string table) { }
         public void StoreExecutedScript(DbUp.Engine.SqlScript script) { }
+        protected virtual bool VerifyColumnExistsCommand(System.Data.IDbCommand command, string tableName, string schemaName, string columnName) { }
         protected virtual bool VerifyTableExistsCommand(System.Data.IDbCommand command, string tableName, string schemaName) { }
     }
 }

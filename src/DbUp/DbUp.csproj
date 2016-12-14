@@ -27,13 +27,14 @@
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>none</DebugType>
+    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\DbUp.xml</DocumentationFile>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -59,6 +60,9 @@
     <Compile Include="Builder\StandardExtensions.cs" />
     <Compile Include="Builder\UpgradeConfiguration.cs" />
     <Compile Include="Builder\UpgradeEngineBuilder.cs" />
+    <Compile Include="Engine\ExecutedSqlScript.cs" />
+    <Compile Include="Engine\Hashers\Md5WithMarkHasher.cs" />
+    <Compile Include="Engine\IHasher.cs" />
     <Compile Include="Engine\Preprocessors\VariableSubstitutionSqlParser.cs" />
     <Compile Include="EnsureDatabase.cs" />
     <Compile Include="DeployChanges.cs" />
@@ -75,6 +79,7 @@
     <Compile Include="Engine\Preprocessors\StripSchemaPreprocessor.cs" />
     <Compile Include="Engine\Transactions\TransactionMode.cs" />
     <Compile Include="Engine\Transactions\TransactionPerScriptStrategy.cs" />
+    <Compile Include="Helpers\DbExtensions.cs" />
     <Compile Include="Helpers\Filters.cs" />
     <Compile Include="Helpers\NullJournal.cs" />
     <Compile Include="ScriptProviders\EmbeddedScriptsProvider.cs" />

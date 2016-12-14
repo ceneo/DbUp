@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using DbUp.Engine;
 using DbUp.Engine.Output;
 using DbUp.Engine.Transactions;
+using DbUp.Helpers;
 
 namespace DbUp.Support.SqlServer
 {
@@ -67,7 +68,7 @@ namespace DbUp.Support.SqlServer
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
-                            scripts.Add(new ExecutedSqlScript((string)reader[0], null));
+                            scripts.Add(new ExecutedSqlScript(reader[0].Get<string>(), reader[1].Get<string>()));
                     }
                 }
             });

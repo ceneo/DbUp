@@ -264,6 +264,10 @@ namespace DbUp.Helpers
         public object ExecuteScalar(string query, params System.Func<, >[] parameters) { }
         public DbUp.Helpers.AdHocSqlRunner WithVariable(string variableName, string value) { }
     }
+    public class static DbExtensions
+    {
+        public static T Get<T>(this object source) { }
+    }
     public class NullJournal : DbUp.Engine.IJournal
     {
         public NullJournal() { }

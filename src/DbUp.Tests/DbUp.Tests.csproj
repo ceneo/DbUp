@@ -100,6 +100,7 @@
     <Compile Include="Engine\Md5WithMarkHasherTests.cs" />
     <Compile Include="Engine\SqlScriptTests.cs" />
     <Compile Include="Engine\VariableSubstitutionPreprocessorTests.cs" />
+    <Compile Include="Helpers\DbExtensionsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="App_Packages\ApiApprover.3.0.1\PublicApiApprover.cs" />
     <Compile Include="App_Packages\ApiApprover.3.0.1\PublicApiGenerator.cs" />
